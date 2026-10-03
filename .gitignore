@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.json
+*.png
+*.log
+browser_profile/
+test_*.py
+scratch_*.py
