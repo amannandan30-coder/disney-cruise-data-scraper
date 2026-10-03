@@ -1,74 +1,64 @@
-# Disney Cruise Line Data Scraper
+# Disney Cruise Line Scraper (Relu Challenge, Objective 1)
 
-A robust, production-grade automated web scraper and dynamic analysis tool for Disney Cruise Line itineraries, pricing, ships, and sailing dates built using Playwright and Python.
+Scrapes all cruise products from <https://disneycruise.disney.go.com/en-in/> with Playwright and saves a cleaned `results.csv`.
 
-## Overview
-This project was developed for the Relu Challenge (Objective 1) to comprehensively extract and structure all Disney Cruise Line itineraries without relying on hardcoded records or manual paging limits.
+## How it works
 
-### Key Capabilities
-- **Full Catalog Extraction**: Driven dynamically by DCL product catalog metadata and network API interception.
-- **Dynamic Date & Pricing Enrichment**: Parses all sailing date ranges, ship allocations, and 4-tier stateroom pricing (`Inside`, `Outside`, `Verandah`, `Suite`).
-- **Challenge Answering Logic**: Dynamically calculates Pacific Coast cruises, earliest/latest departures, longest/shortest durations, and price ranges.
-- **Zero-Null Schema**: Clean data extraction ensuring valid, populated fields for every itinerary.
-- **Dual Execution Modes**: Runs seamlessly in standard headed mode or `--headless` mode.
+1. Opens the site, accepts the consent banner and clicks **View dates**.
+2. Scrolls the results page until all cruise cards are loaded (the catalog size is read from the site's own API response, not hardcoded).
+3. Uses the page session to fetch every sailing (dates, ships, stateroom prices) for each cruise.
+4. Applies the **Pacific Coast** destination filter programmatically to get the live filtered count.
+5. Cleans the data (stripped titles, cleaned departure ports, no empty fields, no duplicates) and writes `results.csv`.
+6. Prints the answers to the five challenge questions in the terminal.
 
-## Project Structure
-```text
-disney-cruise-data-scraper/
-├── disney_cruise_scraper.py   # Main scraper and challenge solver
-├── results.csv                # Complete extracted cruise dataset (CSV)
-├── requirements.txt           # Python dependencies
-├── .gitignore                 # Excluded environments and temporary artifacts
-└── README.md                  # Project documentation
+## Setup and run
+
+```bash
+pip install -r requirements.txt
+playwright install chromium
+
+python disney_cruise_scraper.py              # headed browser (default)
+python disney_cruise_scraper.py --headless   # headless (e.g. Colab)
 ```
 
-## Dataset Fields (`results.csv`)
+Google Colab:
+
+```python
+!pip install playwright pandas
+!playwright install chromium
+!python disney_cruise_scraper.py --headless
+```
+
+## Output: `results.csv`
+
+One row per cruise product (171 rows).
+
 | Column | Description |
 |---|---|
-| `cruise_code` | Unique Disney Cruise Line itinerary code (e.g., `DA0086`) |
-| `cruise_name` | Official title of the cruise itinerary |
-| `nights` | Duration of the cruise in nights |
-| `departure_port` | Port city of departure |
-| `destination` | Cruise destination region |
-| `ships` | Assigned Disney Cruise ship(s) |
-| `dates` | Pipe-delimited list of all sailing date ranges (`YYYY-MM-DD to YYYY-MM-DD`) |
-| `num_dates` | Total number of sailing dates available for this cruise |
-| `first_sailing_prices` | 4-tier room prices for the earliest sailing date |
-| `url` | Direct Disney Cruise Line URL for the cruise |
+| cruise_code | Sailing code taken from the cruise URL |
+| cruise_name | Cruise title |
+| nights | Number of nights |
+| departure_port | Departure port (text after "from", cut before "ending" / "with") |
+| destination | Destination as returned by the site |
+| ships | Ships sailing this cruise |
+| dates | All sailing dates, joined with ` \| ` |
+| num_dates | Number of sailing dates |
+| first_sailing_prices | Stateroom prices of the first sailing |
+| url | Cruise details link |
 
-## Installation & Setup
+## Challenge answers
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/amannandan30-coder/disney-cruise-data-scraper.git
-   cd disney-cruise-data-scraper
-   ```
+| Question | Answer |
+|---|---|
+| (i) Total cruises for Pacific as a destination | 2 |
+| (ii) Total cruises | 171 |
+| (iii) Holiday cruises (Very Merrytime 44 + Halloween on the High Seas 27) | 71 |
+| (iv) Cruises offering more than 2 dates | 67 |
+| (v) Cruises with Miami / London as departure ports | 0 / 0 |
 
-2. **Create and activate a virtual environment (optional but recommended):**
-   ```bash
-   python -m venv .venv
-   # Windows:
-   .venv\Scripts\activate
-   # Linux / macOS:
-   source .venv/bin/activate
-   ```
+## Notes
 
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   playwright install chromium
-   ```
-
-## Usage
-
-Run the scraper in standard (headed) mode:
-```bash
-python disney_cruise_scraper.py
-```
-
-Run in headless mode:
-```bash
-python disney_cruise_scraper.py --headless
-```
-
-Output will be saved to `results.csv` and a full validation and question summary report will be printed to stdout.
+- "Cruise" means one cruise card (product). Each card can hold many sailing dates.
+- Disney does not list Miami or London as departure ports; the closest ports in the data are Fort Lauderdale and Southampton, which are not counted for (v).
+- In the latest run the sum of `num_dates` was 947, while the live page header showed 948 sailings. The cruise count (171) and all five answers are unaffected.
+- Requests are paced with short delays to avoid loading the site.
